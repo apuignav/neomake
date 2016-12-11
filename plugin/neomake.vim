@@ -21,7 +21,8 @@ command! -bar NeomakeInfo call neomake#DisplayInfo()
 
 augroup neomake
   au!
-  au WinEnter,CursorHold * call neomake#ProcessCurrentWindow()
+  au WinEnter * call neomake#ProcessCurrentWindow()
+  au CursorHold * call neomake#ProcessPendingOutput()
   au BufEnter * call neomake#highlights#ShowHighlights()
   au CursorMoved * call neomake#CursorMoved()
   au ColorScheme,VimEnter * call neomake#signs#DefineHighlights()
