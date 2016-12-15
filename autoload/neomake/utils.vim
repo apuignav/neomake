@@ -8,6 +8,8 @@ let s:level_to_name = {
             \ 3: 'debug',
             \ }
 
+let s:unset = {}
+
 if has('reltime')
     let s:reltime_start = reltime()
 endif
@@ -221,25 +223,24 @@ endfunction
 " Get a setting by key, based on filetypes, from the buffer or global
 " namespace, defaulting to default.
 function! neomake#utils#GetSetting(key, maker, default, fts, bufnr) abort
-  let maker_name = has_key(a:maker, 'name') ? '_'.a:maker.name : ''
-  if len(a:fts)
-    for ft in a:fts
-      " Look through the neomake setting override vars for a filetype maker,
-      " like neomake_scss_sasslint_exe (should be a string), and
-      " neomake_scss_sasslint_args (should be a list)
-      let config_var = 'neomake_'.ft.maker_name.'_'.a:key
-      if has_key(g:, config_var)
-            \ || !empty(getbufvar(a:bufnr, config_var))
+  let maker_name = has_key(a:maker, 'name') ? a:maker.name : ''
+  for ft in a:fts + ['']
+    " Look through the override vars for a filetype maker, like
+    " neomake_scss_sasslint_exe (should be a string), and
+    " neomake_scss_sasslint_args (should be a list).
+    let part = join(filter([ft, maker_name], 'len(v:val)'), '_')
+    if !len(part)
         break
-      endif
-    endfor
-  elseif len(maker_name)
-    " Following this, we're checking the neomake overrides for global makers
-    let config_var = 'neomake'.maker_name.'_'.a:key
-  endif
+    endif
+    let config_var = 'neomake_'.part.'_'.a:key
+    if has_key(g:, config_var)
+          \ || getbufvar(a:bufnr, config_var, s:unset) isnot s:unset
+      break
+    endif
+  endfor
 
   if exists('config_var')
-    if !empty(getbufvar(a:bufnr, config_var))
+    if getbufvar(a:bufnr, config_var, s:unset) isnot s:unset
       return copy(getbufvar(a:bufnr, config_var))
     elseif has_key(g:, config_var)
       return copy(get(g:, config_var))
@@ -249,12 +250,12 @@ function! neomake#utils#GetSetting(key, maker, default, fts, bufnr) abort
     return a:maker[a:key]
   endif
   " Look for 'neomake_'.key in the buffer and global namespace.
-  let bufvar = getbufvar(a:bufnr, 'neomake_'.a:key)
-  if !empty(bufvar)
+  let bufvar = getbufvar(a:bufnr, 'neomake_'.a:key, s:unset)
+  if bufvar isnot s:unset
       return bufvar
   endif
-  let var = get(g:, 'neomake_'.a:key)
-  if !empty(var)
+  let var = get(g:, 'neomake_'.a:key, s:unset)
+  if var isnot s:unset
       return var
   endif
   return a:default
