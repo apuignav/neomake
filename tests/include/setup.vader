@@ -172,3 +172,5 @@ After:
     endfor
     throw 'There were '.len(jobs).' jobs left: '.string(jobs)
   endif
+
+  autocmd! neomake_tests
